@@ -955,6 +955,8 @@ public:
     proc_t* roll_the_bones_wasted;
     proc_t* t31_buff_extended;
     proc_t* t31_buff_not_extended;
+    //srl custom procs cause im dumb
+    std::vector<proc_t*> t31_extended_buffs;
 
     // Subtlety
     proc_t* deepening_shadows;
@@ -6999,6 +7001,7 @@ struct roll_the_bones_t : public buff_t
   std::vector<overflow_state> overflow_states;
 
   buff_t* t31_last_extended;
+  std::map<std::string, unsigned> buff_idx_map{{"broadside", 0}, {"buried_treasure", 1}, {"grand_melee", 2}, {"ruthless_precision", 3}, {"skull_and_crossbones", 4}, {"true_bearing", 5}};
 
   roll_the_bones_t( rogue_t* r ) :
     buff_t( r, "roll_the_bones", r->spec.roll_the_bones ),
@@ -7241,6 +7244,12 @@ struct roll_the_bones_t : public buff_t
         expire_secondary_buffs();
         t31_last_extended = extended;
         extended->trigger( trigger_duration );
+
+        //dumb code to track
+        if ( buff_idx_map.count(extended->name()) > 0 )
+        {
+         rogue->procs.t31_extended_buffs[ buff_idx_map[extended->name()] ]->occur(); 
+        }
       }
     }
     else {
@@ -9754,6 +9763,12 @@ void rogue_t::init_procs()
   procs.roll_the_bones_wasted   = get_proc( "Roll the Bones Wasted" );
   procs.t31_buff_extended       = get_proc( "(T31) Roll the Bones Buff Extended" );
   procs.t31_buff_not_extended   = get_proc( "(T31) Roll the Bones Buff Not Extended" );
+
+  procs.t31_extended_buffs.clear();
+  for ( int i = 0; i < roll_the_bones->buffs.size(); i++ )
+  {
+    procs.t31_extended_buffs.push_back( get_proc( "T31 extended " + roll_the_bones->buffs[ i ]->name_str) );
+  }
 
   procs.amplifying_poison_consumed           = get_proc( "Amplifying Poison Consumed" );
   procs.amplifying_poison_deathmark_consumed = get_proc( "Amplifying Poison (Deathmark) Consumed" );
