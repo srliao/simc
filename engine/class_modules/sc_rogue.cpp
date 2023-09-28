@@ -957,6 +957,7 @@ public:
     proc_t* t31_buff_not_extended;
     //srl custom procs cause im dumb
     std::vector<proc_t*> t31_extended_buffs;
+    std::vector<proc_t*> t31_extended_cached;
 
     // Subtlety
     proc_t* deepening_shadows;
@@ -7231,10 +7232,12 @@ struct roll_the_bones_t : public buff_t
         rogue->procs.t31_buff_extended->occur();
         timespan_t trigger_duration = timespan_t::from_millis( rogue->set_bonuses.t31_outlaw_4pc->effectN( 1 ).base_value() );
 
+        bool is_cached = false;
         buff_t* extended;
         if ( active_buffs.empty() )
         {
           extended = t31_last_extended;
+          is_cached = true;
         }
         else
         {
@@ -7248,7 +7251,9 @@ struct roll_the_bones_t : public buff_t
         //dumb code to track
         if ( buff_idx_map.count(extended->name()) > 0 )
         {
-         rogue->procs.t31_extended_buffs[ buff_idx_map[extended->name()] ]->occur(); 
+          rogue->procs.t31_extended_buffs[ buff_idx_map[extended->name()] ]->occur(); 
+          if ( is_cached )
+            rogue->procs.t31_extended_cached[ buff_idx_map[extended->name()] ]->occur();
         }
       }
     }
@@ -9768,6 +9773,12 @@ void rogue_t::init_procs()
   for ( int i = 0; i < roll_the_bones->buffs.size(); i++ )
   {
     procs.t31_extended_buffs.push_back( get_proc( "T31 extended " + roll_the_bones->buffs[ i ]->name_str) );
+  }
+  
+  procs.t31_extended_cached.clear();
+  for ( int i = 0; i < roll_the_bones->buffs.size(); i++ )
+  {
+    procs.t31_extended_cached.push_back( get_proc( "T31 on empty rtb added:  " + roll_the_bones->buffs[ i ]->name_str) );
   }
 
   procs.amplifying_poison_consumed           = get_proc( "Amplifying Poison Consumed" );
