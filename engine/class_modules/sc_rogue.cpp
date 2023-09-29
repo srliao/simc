@@ -968,6 +968,12 @@ public:
 
   } procs;
 
+  struct uptimes_t
+  {
+    uptime_t* shadow_dance;
+    uptime_t* subterfuge;
+  } uptime;
+
   // Set Bonus effects
   struct set_bonuses_t
   {
@@ -1080,6 +1086,7 @@ public:
   void        copy_from( player_t* source ) override;
   std::string create_profile( save_e stype ) override;
   void        init_action_list() override;
+  void        init_uptimes() override;
   void        reset() override;
   void        activate() override;
   void        arise() override;
@@ -6683,6 +6690,7 @@ struct subterfuge_t : public buff_t
     {
       rogue->buffs.adrenaline_rush->pause();
     }
+    rogue->uptime.subterfuge->update( true, sim->current_time());
   }
 
   void expire_override( int expiration_stacks, timespan_t remaining_duration ) override
@@ -6693,6 +6701,7 @@ struct subterfuge_t : public buff_t
     {
       rogue->buffs.adrenaline_rush->unpause();
     }
+    rogue->uptime.subterfuge->update( false, sim->current_time());
   }
 };
 
@@ -6854,6 +6863,7 @@ struct shadow_dance_t : public stealth_like_buff_t<damage_buff_t>
       rogue->danse_macabre_tracker.clear();
       rogue->buffs.danse_macabre->trigger();
     }
+    rogue->uptime.shadow_dance->update( true, sim->current_time());
   }
 
   void expire_override( int expiration_stacks, timespan_t remaining_duration ) override
@@ -6871,6 +6881,8 @@ struct shadow_dance_t : public stealth_like_buff_t<damage_buff_t>
       rogue->buffs.danse_macabre->expire();
       rogue->danse_macabre_tracker.clear();
     }
+
+    rogue->uptime.shadow_dance->update( false, sim->current_time());
 
     // These buffs do not persist after Shadow Dance expires, unlike normal Stealth
     rogue->buffs.improved_garrote->expire();
@@ -8480,6 +8492,16 @@ void rogue_t::init_action_list()
   player_t::init_action_list();
 }
 
+// rogue_t::init_uptimes ==================================================
+
+void rogue_t::init_uptimes()
+{
+  player_t::init_uptimes();
+
+  uptime.shadow_dance = get_uptime( "Shadow Dance" ) ->collect_uptime(*sim);
+  uptime.subterfuge = get_uptime( "Subterfuge" ) ->collect_uptime(*sim);
+}
+
 // rogue_t::create_action  ==================================================
 
 action_t* rogue_t::create_action( util::string_view name, util::string_view options_str )
@@ -9763,22 +9785,22 @@ void rogue_t::init_procs()
   procs.serrated_bone_spike_waste             = get_proc( "Serrated Bone Spike Refund Wasted" );
   procs.serrated_bone_spike_waste_partial     = get_proc( "Serrated Bone Spike Refund Wasted (Partial)" );
 
-  procs.count_the_odds          = get_proc( "Count the Odds" );
-  procs.count_the_odds_capped   = get_proc( "Count the Odds Capped" );
-  procs.roll_the_bones_wasted   = get_proc( "Roll the Bones Wasted" );
-  procs.t31_buff_extended       = get_proc( "(T31) Roll the Bones Buff Extended" );
-  procs.t31_buff_not_extended   = get_proc( "(T31) Roll the Bones Buff Not Extended" );
+  procs.count_the_odds          = get_proc( "Count the Odds" ) -> collect_count( true );
+  procs.count_the_odds_capped   = get_proc( "Count the Odds Capped" ) -> collect_count( true );
+  procs.roll_the_bones_wasted   = get_proc( "Roll the Bones Wasted" ) -> collect_count( true );
+  procs.t31_buff_extended       = get_proc( "(T31) Roll the Bones Buff Extended" ) -> collect_count( true );
+  procs.t31_buff_not_extended   = get_proc( "(T31) Roll the Bones Buff Not Extended" ) -> collect_count( true );
 
   procs.t31_extended_buffs.clear();
   for ( int i = 0; i < roll_the_bones->buffs.size(); i++ )
   {
-    procs.t31_extended_buffs.push_back( get_proc( "T31 extended " + roll_the_bones->buffs[ i ]->name_str) );
+    procs.t31_extended_buffs.push_back( get_proc( "T31 extended " + roll_the_bones->buffs[ i ]->name_str) -> collect_count( true ) );
   }
   
   procs.t31_extended_cached.clear();
   for ( int i = 0; i < roll_the_bones->buffs.size(); i++ )
   {
-    procs.t31_extended_cached.push_back( get_proc( "T31 on empty rtb added:  " + roll_the_bones->buffs[ i ]->name_str) );
+    procs.t31_extended_cached.push_back( get_proc( "T31 on empty rtb added:  " + roll_the_bones->buffs[ i ]->name_str) -> collect_count( true ) );
   }
 
   procs.amplifying_poison_consumed           = get_proc( "Amplifying Poison Consumed" );
